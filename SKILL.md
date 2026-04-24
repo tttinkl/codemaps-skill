@@ -43,7 +43,7 @@ triggers:
 - Edge 必须能在代码中找到**具体调用点**（`foo()` 调用 `bar()` 的那一行）；无法定位的 edge 不要写
 - 每个 excerpt 必须是**源文件真实连续行**，允许用 `// ...` 省略标记跳过无关内部分支，**禁止改写/拼接/臆造代码**
 
-### 3. 构造 Nodes / Edges
+### 3. 构造 Nodes / Edges / Flow
 
 按 `schema-design.md` §5.1 的 YAML-ish 多行 bullet 格式：
 
@@ -52,7 +52,7 @@ triggers:
 - id: N1
   name: login(req, res)
   path: src/auth/login.ts:42-58
-  kind: handler          # function | class | middleware | handler | hook | external
+  kind: handler          # function | class | middleware | handler | hook | external | branch
   role: HTTP 入口，校验凭证后分派 session
   notes: 含有 rate-limit feature flag（可选）
   excerpt_lang: ts       # 有 excerpt 时必填
@@ -65,7 +65,37 @@ triggers:
   when: 凭证通过         # 可选：触发条件 / 分支
 ```
 
-Flow 章节用时序叙述引用 Nx（示例见 schema-design.md §5.1）。
+**kind 词表**：`function / class / middleware / handler / hook / external / branch`。
+`branch` 专门用于"状态机分支 / 逻辑节点"（无独立 callable 目标，如 `line-loop` / `close-frontmatter`）；
+这类节点通常没有 path:line，写"同一函数内的逻辑段 + 所在行号"即可。
+
+#### 3.1 Flow 节点引用必须带标注（首次出现）
+
+Flow 是人类叙述 + AI 识别两用章节，裸 `Nx` 不够 —— 需要读者回跳 Nodes section 才能知道 N1 是什么。
+**规则**：同一 Nx 在 Flow 里**首次出现**必须写成 `Nx(kind:name)`，同段后续复述可只写 `Nx`。
+
+```markdown
+## Flow
+1. **N1(fn:main)** 启动 → 调用 **N2(fn:parseInput)**。
+2. **N2** 内部进入 **N3(br:line-loop)** 状态机，每行触发 **N4(ext:fs.readFileSync)**。
+3. 返回路径：**N2** → **N1**。
+```
+
+**kind 缩写表**（Flow 里优先用缩写保持密度；parser 和全名都接受）：
+
+| 全名        | 缩写   | 适用                              |
+|-------------|--------|-----------------------------------|
+| function    | fn     | 项目内函数                        |
+| class       | cls    | 类                                |
+| middleware  | mw     | 中间件 / 拦截器                   |
+| handler     | hdlr   | 路由 handler                      |
+| hook        | hook   | 生命周期 / React hook             |
+| external    | ext    | 第三方库 / Node API / 系统调用    |
+| branch      | br     | 状态机分支 / 逻辑节点             |
+
+**Node Details 的 `### Nx` 标题也建议带同样标注**（便于搜索对齐）：`### N1(fn:main) — 入口`。
+
+**parser 校验**：Flow 里的 kind（归一化后）必须与 Nodes section 对应项的 kind 一致；不一致直接报错。
 
 ### 4. 摘取 Excerpt（M 档覆盖率策略）
 
@@ -110,9 +140,11 @@ Flow 章节用时序叙述引用 Nx（示例见 schema-design.md §5.1）。
 
 - [ ] Frontmatter 8 字段齐全：slug / scope / kind / title / entry / created_at / last_touched / tags（last_touched 可与 created_at 相同）
 - [ ] Flow section 中每个 `Nx` 都在 Nodes section 定义（不能引用不存在节点）
-- [ ] Node Details section 中每个 `###` id 都在 Nodes section 定义
+- [ ] Flow section 中每个 `Nx` 的**首次出现**带 `(kind:name)` 标注，kind 归一化后与 Nodes 对应项一致
+- [ ] Node Details section 中每个 `###` id 都在 Nodes section 定义（标题亦建议带 `(kind:name)` 标注）
 - [ ] 每个 excerpt 与源文件对应 `excerpt_lines` 行号**逐字一致**（除 `// ...` 省略外）
 - [ ] Edges 中每个 from/to 都指向真实存在的 Node id
+- [ ] Nodes 的 `kind` 属于词表 `function/class/middleware/handler/hook/external/branch`
 - [ ] 节点数在 M 档区间（15–60），若超出或不足 → 拆分成两张 codemap 或提醒用户调整 scope
 - [ ] `index.md` 已追加本 codemap 条目，其他条目保留
 
@@ -140,6 +172,7 @@ Flow 章节用时序叙述引用 Nx（示例见 schema-design.md §5.1）。
 4. **index.md 必须 read-first 整体覆盖写**，禁止流式 append（原子性保证）
 5. **不自动写 .gitignore**：`.codemaps/` 默认跟踪
 6. **日期字段统一 `YYYY-MM-DD`**：不加引号、不写时分秒（parser 会把 Date 归一化截断）
+7. **Flow NodeRef 首次必带 `(kind:name)` 标注**：kind 属于词表（全名或缩写均可），归一化后必须与 Nodes 一致；parser 会在不一致 / 未知 kind / Nx 未定义时直接报错
 
 ## 非目标
 
