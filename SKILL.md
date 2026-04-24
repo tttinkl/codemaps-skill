@@ -91,6 +91,17 @@ Flow 章节用时序叙述引用 Nx（示例见 schema-design.md §5.1）。
 1. 写 `<project>/.codemaps/<slug>.md`（frontmatter + 7 sections 全量）
 2. 更新 `<project>/.codemaps/index.md` —— **必须 Read-first → 内存拼接 → 整体覆盖写**，禁止流式 append（防中断损坏；index 条目含 slug / scope / title / tags / last_touched）
 
+**Frontmatter 日期字段写法规范**：
+- **统一用 `YYYY-MM-DD` 纯日期格式，不加引号、不写时分秒**
+- 适用字段：`created_at` / `last_touched` / `history.introduced_at` / `history.last_refactor`
+- 示例：`created_at: 2026-04-24`（✅）；`created_at: '2026-04-24'`（✅ 兼容但啰嗦）；`created_at: 2026-04-24T01:15:00Z`（❌ 会被 parser 截断，信息浪费）
+- 背景：parser 自动把 YAML Date 规范化为 `YYYY-MM-DD` 字符串，保证 `@` 注入和 viewer 看到一致的短日期
+
+**字符串字段引号规则**（避免 YAML 陷阱）：
+- 含冒号 `:` / 井号 `#` / 方括号 `[]` 的标题和描述**必须单引号**（如 `title: 'POST /api/orders: 下单流程'`）
+- 纯拉丁字母+中文+连字符的简单字符串可省引号
+- 节点 `path: src/auth/login.ts:42-58` 里的冒号属于值的一部分，YAML 能解析，无需引号
+
 **不自动写 `.gitignore`**：`.codemaps/` 默认跟踪，作为团队共享的任务上下文档案（IMPLEMENTATION.md §0.2 决策 17）。
 
 ### 6. 自检清单
@@ -128,6 +139,7 @@ Flow 章节用时序叙述引用 Nx（示例见 schema-design.md §5.1）。
 3. **节点数硬上限 60**：逼近即停止扩展，按优先级剪枝；若任务本身超过，提议用户拆成两张 codemap
 4. **index.md 必须 read-first 整体覆盖写**，禁止流式 append（原子性保证）
 5. **不自动写 .gitignore**：`.codemaps/` 默认跟踪
+6. **日期字段统一 `YYYY-MM-DD`**：不加引号、不写时分秒（parser 会把 Date 归一化截断）
 
 ## 非目标
 
