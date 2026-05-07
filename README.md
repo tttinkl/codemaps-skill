@@ -18,7 +18,7 @@ pnpm dlx skills add tttinkl/codemaps-skill
 
 激活后，向 AI agent 说：
 
-- "建 codemap" / "给 X 流程做一张代码地图" / "帮我理解这条调用链"
+- "建 codemap" / "/codemap 给 X 流程做一张代码地图" / "帮我理解这条调用链"
 
 agent 会按 SKILL 的 6 阶段流程产出 `.codemaps/<slug>.md`。
 
@@ -28,11 +28,11 @@ agent 会按 SKILL 的 6 阶段流程产出 `.codemaps/<slug>.md`。
 
 **下载安装**：
 
-1. 前往 [GitHub Releases](https://github.com/tttinkl/codemaps-cc/releases) 下载最新 `.vsix`
-2. 安装：
+1. 前往 [GitHub Releases](https://github.com/tttinkl/codemaps-skill/releases) 下载最新 `.vsix`
+2. 用 `.vsix` 的实际路径安装（cd 到下载目录，或写绝对路径）：
 
    ```bash
-   code --install-extension codemaps-vscode-<version>.vsix
+   code --install-extension ~/Downloads/codemaps-vscode-<version>.vsix
    ```
 
    Windsurf / Cursor 用对应的 `windsurf` / `cursor` 命令。

@@ -90,11 +90,13 @@ triggers:
 - 不同 section 可复用 letter（`1a` 与 `2a` 互不冲突）
 - 每 section ≥ 1 个代码节点
 
-#### 3.2 文档骨架（扁平 H2）
+#### 3.2 文档骨架与 Frontmatter 字段
+
+**整体结构（扁平 H2）**：
 
 ```markdown
 ---
-slug / scope / kind / title / entry / created_at / last_touched / tags / history
+<frontmatter 字段，见下表>
 ---
 
 ## Overview              # 元 section：3-5 句 + ≥1 条主线引用链 + 显式非目标
@@ -107,6 +109,44 @@ slug / scope / kind / title / entry / created_at / last_touched / tags / history
 ```
 
 **严禁**：`## Nodes` / `## Edges` / `## Node Details` / `## Flow` 顶级章节（v0.1.2 已废弃，parser 直接报错）。
+
+**Frontmatter 字段规范**：
+
+| 字段 | 必填 | 类型 / 取值 | 说明 |
+|---|---|---|---|
+| `slug` | ✅ | kebab-case 字符串，≤50 字符 | 文件名 = `<slug>.md`；与 `.codemaps/<slug>.md` 路径强绑定，冲突时追加 `-2` / `-3` |
+| `scope` | ✅ | `S` / `M` / `L` 单字母枚举 | 规模档位：S=3–15 代码节点 / M=15–60（默认）/ L=30–150；viewer 按此微调渲染密度 |
+| `kind` | ✅ | 固定值 `call-path-slice` | 文档类型 discriminator；当前唯一合法值，其他值 parser 拒绝 |
+| `title` | ✅ | 字符串，用户原始语言 | 一句话任务描述；含 `:` / `#` / `[]` 必须用单引号包裹（见 §5 引号规则） |
+| `entry.type` | ✅ | `function` / `endpoint` / `event` / `extension-point` 枚举 | 入口锚点类型 |
+| `entry.ref` | ✅ | 字符串 | 定位入口的引用——函数符号（建议含 `file:line`）/ HTTP 路径 / 事件名 / 扩展点 ID |
+| `created_at` | ✅ | `YYYY-MM-DD` | 首次生成日期；不加引号、不写时分秒（见 §5 日期规则） |
+| `last_touched` | 可选 | `YYYY-MM-DD` | 最近一次更新日期；建议每次回填同步 |
+| `tags` | 可选 | 字符串数组 | 用于 index.md 索引与 viewer 过滤；如 `[auth, login]` |
+| `history.introduced_at` | 可选 | commit sha 或 `YYYY-MM-DD` | 流程引入时间，便于回溯历史 |
+| `history.last_refactor` | 可选 | commit sha 或 `YYYY-MM-DD` | 最近一次重构时间 |
+
+**完整示例**：
+
+```yaml
+---
+slug: routenav-navigation-structure
+scope: M
+kind: call-path-slice
+title: RouteNav 导航组件结构：路由处理与二级菜单系统
+entry:
+  type: function
+  ref: RouteNav (src/RouteNav.tsx:8)
+created_at: 2026-05-04
+last_touched: 2026-05-04
+tags: [routenav, navigation, routing]
+history:
+  introduced_at: 2024-11-12
+  last_refactor: 2026-04-30
+---
+```
+
+> 字段写盘相关的 YAML 引号规则与日期格式硬约束见 §5 「写盘」。
 
 #### 3.3 单 section 内部结构（**字面 verbatim 模板，照着拷贝缩进**）
 
