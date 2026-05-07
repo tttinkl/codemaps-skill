@@ -7,7 +7,7 @@ triggers:
   - 用户说"帮我理解这条调用链"
 ---
 
-# Codemap Generator (v0.1.3)
+# Codemap Generator
 
 按任务驱动的方式为 coding project 产出精准 Call-Path Slice 代码地图。**反 "vibeslop"**：先建立共同理解再动手写代码。
 
