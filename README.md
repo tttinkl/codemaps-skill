@@ -46,6 +46,10 @@ agent 会按 SKILL 的 6 阶段流程产出 `.codemaps/<slug>.md`。
 
 任一缺失会先反问，不会盲目开干。
 
+## VS Code Extension Screenshot
+
+![alt text](image.png)
+
 ## License
 
 MIT
