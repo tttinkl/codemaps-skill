@@ -67,7 +67,7 @@ triggers:
 - 所有 file:line 必须来自**真实文件读取**（Read 工具），禁止凭训练语料臆造符号名或行号
 - 每个代码节点的 code 必须是**源文件真实连续行**，允许用 `// ...` 省略标记跳过无关内部分支，**禁止改写/拼接/臆造代码**
 
-### 3. 构造文档（v0.1.3 三类节点模型）
+### 3. 构造文档
 
 #### 3.1 节点三类模型
 
@@ -265,21 +265,12 @@ Overview 段落 3–5 句话；**必须**满足：
 9. **嵌套深度 ≤ 4 层**：超过提议拆 section
 10. **节点 label 用中文动作描述**：符号名仅在 code block，不写在 label
 11. **保留用户语言**：title / Overview / section 标题 / 节点 label 用用户输入时的语言；只有代码符号名 / file path / 行号保持原文
-12. **不允许 `## Nodes` / `## Edges` / `## Node Details` / `## Flow` 顶级章节**（v0.1.2 已废弃；parser 报错）
 13. **index.md 必须 read-first 整体覆盖写**：禁止流式 append
 14. **日期字段统一 `YYYY-MM-DD`**：不加引号、不写时分秒
 
 ## 非目标
 
-- **不做**全系统拓扑 / 架构俯瞰 / 重构用依赖全景图（那是其它工具的职责）
+- **不做**全系统拓扑 / 架构俯瞰 / 重构用依赖全景图
 - **不修改**源代码
 - **不运行** git commit / push 等改变仓库状态的命令
 - **单次调用只产一个 codemap**；多任务分多次调用
-- **MVP 不做**漂移检测（excerpt_sha 校验延后到 v0.2）
-
-## 相关
-
-- Schema 规格：项目根 `schema-design.md` §5
-- 实施方案：项目根 `IMPLEMENTATION.md`
-- Viewer 源码：`viewer/`（Hono + HTML 嵌套树 + Prism）
-- Parser 源码：`packages/parser/`（mdast-based，60+ tests）
