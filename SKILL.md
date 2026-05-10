@@ -1,132 +1,131 @@
 ---
 name: codemap
-description: 为当前 coding project 按任务 prompt 生成 Call-Path Slice codemap（单一结构化 Markdown，v0.1.3 schema），写入 <project>/.codemaps/。产物同时供 Claude `@` 注入和本地 viewer 可视化阅读。
+description: Generate a navigable code map for a specific task or flow in the current project — a focused slice of call paths with real code excerpts — saved to `.codemaps/<slug>.md`. Serves as both an `@`-referenceable source for Claude and a visualization input for the local viewer.
 triggers:
-  - 用户说"建 codemap / 生成 codemap / codemap this"
-  - 用户说"给 X 流程做一张代码地图"
-  - 用户说"帮我理解这条调用链"
+  - make a codemap / generate a codemap / codemap this
+  - draw a code map for X flow/endpoint/event
+  - distill this call chain into a reusable codemap
 ---
 
 # Codemap Generator
 
-按任务驱动的方式为 coding project 产出精准 Call-Path Slice 代码地图。**反 "vibeslop"**：先建立共同理解再动手写代码。
+Produce a precise, task-driven Call-Path Slice code map for a coding project. **Anti-vibeslop**: build shared understanding before writing code.
 
-产出规格完整定义在项目根的 `schema-design.md` §5；本 SKILL 仅引导生成步骤与硬约束。
+The full output spec lives in §5 of `schema-design.md` at the project root; this SKILL only guides the generation steps and hard constraints.
 
-**核心形态**：
-- **节点三类模型**：代码节点（带 ID + code）/ 指针节点（无 ID 有 file:line）/ 分组节点（无 ID 无 code）
-- **节点 ID = section-local 复合编号**：`<section-num><letter>`，如 `1a` / `1b` / `2a` / `3c`
-- **扁平 H2 文档结构**：`## Overview` / `## 1. Section` / `## 2. Section` / ... / `## Narrative` / `## Notes`
-- **Overview 必含主线引用链**：`[1a]→[1b]→[3c]` 至少 3 个 ID 用 `→` 串联
+**Core shape**:
+- **Three node types**: Code Node (has ID + code) / Pointer Node (no ID, has file:line) / Group Node (no ID, no code)
+- **Node ID = section-local compound number**: `<section-num><letter>`, e.g. `1a` / `1b` / `2a` / `3c`
+- **Flat H2 document structure**: `## Overview` / `## 1. Section` / `## 2. Section` / ... / `## Narrative` / `## Notes`
+- **Overview must contain a main flow reference chain**: `[1a]→[1b]→[3c]`, at least 3 IDs joined with `→`
 
-## 激活前提
+## Activation Prerequisites
 
-1. **工作目录是 coding project**（有源代码、非文档仓库）
-2. **用户已给出任务/入口描述**（如 "登录流程"、"/api/orders POST handler"、"WebhookProcessor 扩展点"）
+1. **Working directory is a coding project** (has source code; not a docs-only repo)
+2. **User has provided a task / entry description** (e.g. "login flow", "POST handler for /api/orders", "WebhookProcessor extension point")
 
-若任一缺失：先补齐再进入步骤 1。
+If either is missing: fill the gap before entering Step 1.
 
-## 思考流程（6 阶段，每张 codemap 必走）
+## Thinking Process (6 phases — mandatory for every codemap)
 
-1. **解释（Interpret）** —— 把用户的入口描述映射到代码符号 / 文件 / 端点 / 事件 / 扩展点。**保留用户原始语言**作为 title 与 section 名（中文项目就用中文，不强行翻译）。模糊术语扩展为代码概念，**禁止臆造未观察到的行为**。
-2. **探索（Explore）** —— 从入口出发沿真实 callable 路径展开（具体 follow paths 见步骤 2）；既追**上游数据来源**也追**下游副作用**；优先解释执行顺序与组件关系的代码路径。
-3. **证据图（Evidence Graph）** —— 收集真实节点（含三类：代码 / 指针 / 分组）+ file:line + code excerpt；每个代码节点必须有 stable section-local id（`1a` / `2c` ...）；剔除不支持主线故事的低价值实现细节。
-4. **分组（Group）** —— 把节点聚合成 **4–8 个 sections**（M 档；S 档 1–2 / L 档 5–12），每节描述一个 coherent flow 或 subsystem；按 execution / data / control flow 顺序排列；每节附一句 **核心包 - <package/module scope 描述>**。
-5. **渲染（Render）** —— 标题从入口和已发现 scope 凝练；**Overview 必须含 ≥1 条主线引用链** (`[1a]→[1b]→[3c]`，≥3 个 ID 用 `→` 连接) + 总内联引用 ≥5 个 + 显式声明非目标；按 §5.4 schema 写嵌套 markdown bullet 树。
-6. **验证（Validate）** —— 校验每条 path / line / code 真实存在；移除无证据声明；最终自问"**这张图能用来导航吗？**"——只作文档不算合格。
+1. **Interpret** — Map the user's entry description to code symbols / files / endpoints / events / extension points. **Preserve the user's original language** as `title` and section names; do not force translation. Expand vague terminology into code concepts; **never fabricate behavior you have not observed**.
+2. **Explore** — Starting from the entry, walk real callable paths (concrete follow paths in Step 2 below); chase **upstream data sources** as well as **downstream side effects**; prefer code paths that explain execution order and component relationships.
+3. **Evidence Graph** — Collect real nodes (all three kinds: Code / Pointer / Group) + file:line + code excerpt; every Code Node must carry a stable section-local id (`1a` / `2c` ...); strip low-value implementation details that do not support the main story.
+4. **Group** — Aggregate nodes into **4–8 sections** (M tier; S tier 1–2 / L tier 5–12), each describing a coherent flow or subsystem; order by execution / data / control flow; attach a one-liner **核心包 - <package/module scope description>** to each.
+5. **Render** — Distill the title from the entry and the scope you discovered; **Overview must contain ≥1 main flow reference chain** (`[1a]→[1b]→[3c]`, ≥3 IDs joined with `→`) + ≥5 inline references in total + an explicit non-goals statement; write the nested markdown bullet tree per the §5.4 schema.
+6. **Validate** — Verify every path / line / code excerpt is real; remove unsupported claims; ask yourself one final question: "**Can I navigate the codebase with this map?**" — A document-only artifact does not pass.
 
-## 步骤
+## Steps
 
-### 1. 对齐任务边界（与用户交互）
+### 1. Align Task Boundaries (interactive with the user)
 
-- **一句话复述**任务目标
-- **确认 scope 档位**（MVP 默认 M；用户可选 S 深读单函数 / L 扩展点契约）
-- **确认入口锚点**：类型（function / endpoint / event / extension-point）+ ref（符号 / HTTP 路径 / 事件名）
-- **提出 slug**：从 title 派生 kebab-case，如 `user-login-flow` / `webhook-processor-extension`；若 `.codemaps/<slug>.md` 已存在则追加 `-2` / `-3`；最终 slug ≤ 50 字符
-- **宣布边界**：明确告诉用户这张 codemap **不会**覆盖的内容（避免探索膨胀）
+- **Restate the task goal in one sentence**
+- **Confirm the scope tier** (default M for MVP; user may pick S for deep-read of a single function, or L for an extension-point contract)
+- **Confirm the entry anchor**: type (`function` / `endpoint` / `event` / `extension-point`) + ref (symbol / HTTP path / event name)
+- **Propose a slug**: derive a kebab-case slug from the title, e.g. `user-login-flow` / `webhook-processor-extension`; if `.codemaps/<slug>.md` already exists, append `-2` / `-3`; final slug ≤ 50 chars
+- **Declare boundaries**: state explicitly what this codemap **will not** cover (to prevent exploration creep)
 
-### 2. 探索调用链（迭代检索）
+### 2. Explore the Call Chain (iterative retrieval)
 
-- **首选激活 `iterative-retrieval` skill**（若 serena_mcp 可用则优先 serena 做搜索）
-- grep / glob / read 三件套追踪入口向外 & 向内各若干跳
-- **沿这些真实 callable 路径展开**（按相关性，不必全列；找不到对应概念就跳过）：
-  - **Imports** —— 入口文件的依赖闭包
-  - **Hook / 生命周期** —— `useEffect` / `onMount` / 中间件 / 拦截器 / signal 订阅
-  - **组件组合** —— 父子组件、`children` / slot、provider、HOC
-  - **事件路径** —— `emit` / `on` / `dispatch` / listener / pub-sub
-  - **Model / State** —— store、reducer、context、reactive 对象的**读写点**
-  - **路由 / 数据 / Schema** —— route 配置、loader / resolver、ORM model、API schema
-  - **样式 / 设计系统** —— theme、design token、variant、material
-  - **设计时 vs 运行时变体** —— feature flag、env 分支、build-time 注入
-  - **上游数据来源** —— 参数从哪里来、context 如何注入、外部输入边界
-  - **下游副作用** —— DB write / 网络出 / 日志 / 队列入 / 文件 IO
-- **优先级**（高→低，配额吃紧时按此剪枝）：
-  入口 > 分支转折 > 失败处理 > 跨层跳点（同步↔异步 / 进程间 / 网络 IO）> 上游数据源 > 下游副作用 > 平凡直通
+- **Retrieval strategy**: iterative retrieval — coarse-scan candidates → score relevance → only read details after converging; do not swallow whole files in one shot
+- **Tool priority**: prefer the host environment's semantic retrieval (LSP-aware MCP / symbol index / semantic search); when unavailable, fall back to the grep / glob / Read trio to trace a few hops outward and inward from the entry
+- **Walk these real callable paths** (by relevance — list as needed; skip if a concept does not apply):
+  - **Imports** — the dependency closure of the entry file
+  - **Hooks / lifecycle** — `useEffect` / `onMount` / middleware / interceptors / signal subscriptions
+  - **Component composition** — parent/child components, `children` / slot, provider, HOC
+  - **Event paths** — `emit` / `on` / `dispatch` / listener / pub-sub
+  - **Model / state** — store, reducer, context, the **read & write sites** of reactive objects
+  - **Routing / data / schema** — route config, loader / resolver, ORM model, API schema
+  - **Styling / design system** — theme, design tokens, variants, materials
+  - **Design-time vs runtime variants** — feature flags, env branching, build-time injection
+  - **Upstream data sources** — where parameters originate, how context is injected, external input boundaries
+  - **Downstream side effects** — DB writes / network egress / logging / queue enqueues / file IO
+- **Priority order**:
+  entry > branch turning point > failure handling > cross-layer hop (sync↔async / inter-process / network IO) > upstream data source > downstream side effect > trivial pass-through
 
-**防盲猜硬约束（不可违反）**：
-- 所有 file:line 必须来自**真实文件读取**（Read 工具），禁止凭训练语料臆造符号名或行号
-- 每个代码节点的 code 必须是**源文件真实连续行**，允许用 `// ...` 省略标记跳过无关内部分支，**禁止改写/拼接/臆造代码**
+**Anti-fabrication hard rules (non-negotiable)**:
+- Every file:line must come from a **real file read** (Read tool); never invent symbol names or line numbers from training-set memory
+- Every Code Node's code must be **real consecutive lines** from the source file; `// ...` may be used to skip irrelevant inner branches; **never rewrite / splice / synthesize code**
 
-### 3. 构造文档
+### 3. Construct the Document
 
-#### 3.1 节点三类模型
+> The examples in this section use Chinese labels because the canonical example project's input language was Chinese. In an English-input project, the labels would be in English. Examples are about structure and indentation, not language.
 
-| 类型 | 何时使用 | 行格式（看清楚精确空格与缩进！） |
+#### 3.1 Three Node Types
+
+| Type | When to use | Line format (mind exact spacing & indentation!) |
 |---|---|---|
-| **代码节点** | 关键代码段（入口 / 分支转折 / 失败处理 / 跨层跳点 / 重要调用） | `- **<id>** <动作 label> — \`<file:line>\`` 紧跟 fenced code block |
-| **指针节点** | 上下文锚点：函数入口签名、组件挂载点、父级文件位置（让用户跳源） | `- **<label>** — \`<file:line>\`` |
-| **分组节点** | 纯结构性标签：循环描述、分支组、子系统标题 | `- **<label>**` （可选 `— \`<file:line>\``） |
+| **Code Node** | Critical code segments (entry / branch turn / failure handling / cross-layer hop / important call) | `- **<id>** <action label> — \`<file:line>\`` immediately followed by a fenced code block |
+| **Pointer Node** | Context anchor: function signature entry, component mount point, parent file location (so the user can jump to source) | `- **<label>** — \`<file:line>\`` |
+| **Group Node** | Pure structural label: loop description, branch group, subsystem heading | `- **<label>** ` (optional `— \`<file:line>\``) |
 
-**节点 label 风格**：
-- **中文动作描述**（"获取路由数据" / "渲染 Nav 子组件" / "用户点击菜单项"），动词开头
-- 函数符号名只出现在 fenced code block 里，**不写在 label 中**
-- 不带 `(kind:name)` 标注（v0.1.2 已废弃）
+**Node label style**:
+- **Action description in the user's input language** ("获取路由数据" / "渲染 Nav 子组件" / "用户点击菜单项" — verb-first)
+- Symbol names appear only inside the fenced code block; **do not put them in the label**
 
-**ID 编号规则**：
-- 形式：`<section-num><letter>`，如 `1a` / `1b` / `2c`
-- section-num 必须等于所在 section 的 H2 编号（`1a` 必须在 `## 1. ...` 内）
-- letter：a-z 在 section 内顺次（**软规则：建议连续，允许 gap，parser 不报错；超过 26 个节点拆 section，不引入 `aa` / `ab`**）
-- 同一 section 内 letter 不能重复（parser 报错）
-- 不同 section 可复用 letter（`1a` 与 `2a` 互不冲突）
-- 每 section ≥ 1 个代码节点
+**ID numbering rules**:
+- Form: `<section-num><letter>`, e.g. `1a` / `1b` / `2c`
+- `section-num` must equal the H2 number of the enclosing section (`1a` must live under `## 1. ...`)
+- `letter`: a–z in section order (**soft rule: prefer consecutive, gaps are allowed and the parser does not error; if you exceed 26 nodes, split the section — do not introduce `aa` / `ab`**)
+- Letters must be unique within a section (parser errors)
+- Letters may repeat across sections (`1a` and `2a` do not conflict)
+- Each section ≥ 1 Code Node
 
-#### 3.2 文档骨架与 Frontmatter 字段
+#### 3.2 Document Skeleton & Frontmatter Fields
 
-**整体结构（扁平 H2）**：
+**Overall structure (flat H2)**:
 
 ```markdown
 ---
-<frontmatter 字段，见下表>
+<frontmatter fields, see table below>
 ---
 
-## Overview              # 元 section：3-5 句 + ≥1 条主线引用链 + 显式非目标
-## 1. <Section Title>    # flow section（M 档 4-8 个）
+## Overview              # meta section: 3-5 sentences + ≥1 main flow reference chain + explicit non-goals
+## 1. <Section Title>    # flow section (M tier: 4-8)
 ## 2. <Section Title>
 ...
 ## N. <Section Title>
-## Narrative             # 元 section（可选）
-## Notes                 # 元 section（可选）
+## Narrative             # meta section (optional)
+## Notes                 # meta section (optional)
 ```
 
-**严禁**：`## Nodes` / `## Edges` / `## Node Details` / `## Flow` 顶级章节（v0.1.2 已废弃，parser 直接报错）。
+**Frontmatter field spec**:
 
-**Frontmatter 字段规范**：
-
-| 字段 | 必填 | 类型 / 取值 | 说明 |
+| Field | Required | Type / Values | Description |
 |---|---|---|---|
-| `slug` | ✅ | kebab-case 字符串，≤50 字符 | 文件名 = `<slug>.md`；与 `.codemaps/<slug>.md` 路径强绑定，冲突时追加 `-2` / `-3` |
-| `scope` | ✅ | `S` / `M` / `L` 单字母枚举 | 规模档位：S=3–15 代码节点 / M=15–60（默认）/ L=30–150；viewer 按此微调渲染密度 |
-| `kind` | ✅ | 固定值 `call-path-slice` | 文档类型 discriminator；当前唯一合法值，其他值 parser 拒绝 |
-| `title` | ✅ | 字符串，用户原始语言 | 一句话任务描述；含 `:` / `#` / `[]` 必须用单引号包裹（见 §5 引号规则） |
-| `entry.type` | ✅ | `function` / `endpoint` / `event` / `extension-point` 枚举 | 入口锚点类型 |
-| `entry.ref` | ✅ | 字符串 | 定位入口的引用——函数符号（建议含 `file:line`）/ HTTP 路径 / 事件名 / 扩展点 ID |
-| `created_at` | ✅ | `YYYY-MM-DD` | 首次生成日期；不加引号、不写时分秒（见 §5 日期规则） |
-| `last_touched` | 可选 | `YYYY-MM-DD` | 最近一次更新日期；建议每次回填同步 |
-| `tags` | 可选 | 字符串数组 | 用于 index.md 索引与 viewer 过滤；如 `[auth, login]` |
-| `history.introduced_at` | 可选 | commit sha 或 `YYYY-MM-DD` | 流程引入时间，便于回溯历史 |
-| `history.last_refactor` | 可选 | commit sha 或 `YYYY-MM-DD` | 最近一次重构时间 |
+| `slug` | ✅ | kebab-case string, ≤50 chars | Filename = `<slug>.md`; bound to `.codemaps/<slug>.md`; on conflict append `-2` / `-3` |
+| `scope` | ✅ | `S` / `M` / `L` enum (single letter) | Size tier: S=3–15 Code Nodes / M=15–60 (default) / L=30–150; viewer adjusts render density |
+| `kind` | ✅ | fixed value `call-path-slice` | Document-type discriminator; currently the only valid value (parser rejects others) |
+| `title` | ✅ | string in user's original language | One-line task description; if it contains `:` / `#` / `[]`, single-quote it (see §5 quoting rules) |
+| `entry.type` | ✅ | `function` / `endpoint` / `event` / `extension-point` enum | Entry anchor type |
+| `entry.ref` | ✅ | string | Reference to the entry — function symbol (preferably with `file:line`) / HTTP path / event name / extension-point ID |
+| `created_at` | ✅ | `YYYY-MM-DD` | First-generated date; no quotes, no time component (see §5 date rules) |
+| `last_touched` | optional | `YYYY-MM-DD` | Last-updated date; recommended to refresh on every edit |
+| `tags` | optional | string array | Used by `index.md` and viewer filter; e.g. `[auth, login]` |
+| `history.introduced_at` | optional | commit sha or `YYYY-MM-DD` | When the flow was introduced; useful for tracing history |
+| `history.last_refactor` | optional | commit sha or `YYYY-MM-DD` | When the flow was last refactored |
 
-**完整示例**：
+**Full example**:
 
 ```yaml
 ---
@@ -146,9 +145,9 @@ history:
 ---
 ```
 
-> 字段写盘相关的 YAML 引号规则与日期格式硬约束见 §5 「写盘」。
+> See §5 "Persistence" for YAML quoting rules and the date-format hard constraint when writing to disk.
 
-#### 3.3 单 section 内部结构（**字面 verbatim 模板，照着拷贝缩进**）
+#### 3.3 Internal Structure of a Section (**verbatim template — copy the indentation exactly**)
 
 ```markdown
 ## 1. RouteNav 组件渲染流程
@@ -176,25 +175,25 @@ history:
         ```
 ```
 
-**关键缩进规则**（CommonMark 要求严格）：
-- 一级 list item：`- ` 后接内容（缩进 0）
-- 二级 list item（嵌套）：`  - ` 缩进 **2 空格**
-- list item 下的 fenced code block：缩进 **4 空格 × depth + 4** 与 list 内容对齐（如二级 list 内的代码块缩进 4 空格）
-- 嵌套深度 ≤ 4 层
+**Critical indentation rules** (CommonMark is strict):
+- Top-level list item: `- ` followed by content (indent 0)
+- Nested list item: `  - ` indent **2 spaces**
+- Fenced code block under a list item: indent **4 spaces × depth + 4** to align with list content (e.g. a code block under a 2nd-level list item indents 4 spaces)
+- Nesting depth ≤ 4 levels
 
-**fenced code block 长度**：1–5 行真实代码；超长函数仅摘签名 + 关键调用行，用 `// ...` 省略中段。
+**Fenced code block length**: 1–5 lines of real code; for long functions, keep only the signature + key call sites and elide the middle with `// ...`.
 
-#### 3.4 Overview 内联引用规则
+#### 3.4 Overview Inline Reference Rules
 
-Overview 段落 3–5 句话；**必须**满足：
+The Overview is 3–5 sentences and **must** satisfy:
 
-1. **≥1 条主线引用链**：`[xa]→[xb]→[xc]`，至少 3 个 ID 用 `→` 连接，描述端到端主路径
-2. **总内联引用 ≥5 个**：含主线 + 副线引用（如失败路径、设计器路径）
-3. **`[<id>]` 形式引用代码节点**（`[1a]`，无 `(kind:name)`）；可选 `[§<num>]` 引用 Flow section
-4. **显式声明非目标**：用 `**非目标**：...` 或同等清晰的句式
-5. **用户原始语言**
+1. **≥1 main flow reference chain**: `[xa]→[xb]→[xc]`, ≥3 IDs joined with `→`, describing the end-to-end main path
+2. **≥5 inline references in total**: includes main + side references (e.g. failure paths, designer paths)
+3. **Reference Code Nodes via `[<id>]`** (`[1a]`, no `(kind:name)`); optionally `[§<num>]` to reference a Flow section
+4. **Explicit non-goals statement**: use `**非目标**: ...` or an equivalent unambiguous phrasing in the user's language
+5. **User's original language**
 
-**示例**：
+**Example**:
 
 ```markdown
 ## Overview
@@ -203,114 +202,114 @@ Overview 段落 3–5 句话；**必须**满足：
 **非目标**：不覆盖 SSR 渲染路径、单元测试代码、历史 v1 实现。
 ```
 
-#### 3.5 Section 标题与 scope blockquote
+#### 3.5 Section Title & Scope Blockquote
 
-- 标题格式：`## <序号>. <Section Title>`（数字 + 点 + 空格 + 中文标题）
-- 标题下一行 blockquote：`> 核心包 - <一句话 package / module scope 描述>`
-- section 排序：execution / data / control flow 顺序；通常"入口 → 主路径 → 副作用 → 失败回收"是好默认
+- Title format: `## <num>. <Section Title>` (number + dot + space + title in the user's input language)
+- The line right after the title is a blockquote: `> 核心包 - <one-line package / module scope description>`
+- Section ordering: by execution / data / control flow; a good default is "entry → main path → side effects → failure recovery"
 
-### 4. 跨 section 关系表达
+### 4. Cross-Section Relationships
 
-无独立 Edges section。需要表达跨节跳转时：
-- **首选**：在 Overview 主线引用链中体现（`[1a]→[1b]→[3c]→[2g]` 自然贯穿多 section）
-- **次选**：在 `## Narrative` 自由段落里散文描述
-- **不要**在 list 节点 label 末尾写结构化 `→ [2g]` —— parser 不抽，纯文字也容易误导
+There is no separate Edges section. To express cross-section transitions:
+- **Preferred**: encode it in the Overview's main flow reference chain (`[1a]→[1b]→[3c]→[2g]` naturally crosses multiple sections)
+- **Secondary**: describe it in `## Narrative` as free-form prose
+- **Do not** append a structural `→ [2g]` to the end of a node label — the parser does not extract it, and free text is misleading
 
-### 5. 写盘
+### 5. Persistence
 
-**两步原子操作**：
+**Atomic two-step write**:
 
-1. 写 `<project>/.codemaps/<slug>.md`（frontmatter + Overview + N flow sections + Narrative + Notes）
-2. 更新 `<project>/.codemaps/index.md` —— **必须 Read-first → 内存拼接 → 整体覆盖写**，禁止流式 append（防中断损坏；index 条目含 slug / scope / title / tags / last_touched）
+1. Write `<project>/.codemaps/<slug>.md` (frontmatter + Overview + N flow sections + Narrative + Notes)
+2. Update `<project>/.codemaps/index.md` — **must Read-first → assemble in memory → overwrite the whole file**; never streaming-append (to avoid corruption on interrupt; index entries include slug / scope / title / tags / last_touched)
 
-**Frontmatter 日期字段写法规范**：
-- **统一用 `YYYY-MM-DD` 纯日期格式，不加引号、不写时分秒**
-- 适用字段：`created_at` / `last_touched` / `history.introduced_at` / `history.last_refactor`
-- 示例：`created_at: 2026-04-24`（✅）；`created_at: '2026-04-24'`（✅ 兼容但啰嗦）；`created_at: 2026-04-24T01:15:00Z`（❌ 会被 parser 截断）
+**Frontmatter date field rules**:
+- **Always plain `YYYY-MM-DD`; no quotes, no time component**
+- Applies to: `created_at` / `last_touched` / `history.introduced_at` / `history.last_refactor`
+- Examples: `created_at: 2026-04-24` (✅); `created_at: '2026-04-24'` (✅ tolerated but verbose); `created_at: 2026-04-24T01:15:00Z` (❌ parser truncates)
 
-**字符串字段引号规则**（避免 YAML 陷阱）：
-- 含冒号 `:` / 井号 `#` / 方括号 `[]` 的标题和描述**必须单引号**（如 `title: 'POST /api/orders: 下单流程'`）
-- 纯拉丁字母+中文+连字符的简单字符串可省引号
+**String field quoting rules** (avoid YAML pitfalls):
+- Titles or descriptions containing `:` / `#` / `[]` **must be single-quoted** (e.g. `title: 'POST /api/orders: 下单流程'`)
+- Plain ASCII letters + CJK + hyphens may go unquoted
 
-**不自动写 `.gitignore`**：`.codemaps/` 默认跟踪，作为团队共享的任务上下文档案。
+**Do not auto-write `.gitignore`**: `.codemaps/` is tracked by default — it is the team's shared task-context archive.
 
-### 6. 自检清单
+### 6. Self-Check Checklist
 
-生成完毕**自行**核对（全部 ✅ 才向用户交付）：
+After generating, **self-verify** (every box ✅ before delivering to the user):
 
-**Frontmatter**：
-- [ ] 必填字段齐全：slug / scope / kind / title / entry / created_at（last_touched / tags / history 可选）
-- [ ] kind 值为 `call-path-slice`
+**Frontmatter**:
+- [ ] All required fields present: slug / scope / kind / title / entry / created_at (last_touched / tags / history optional)
+- [ ] `kind` value is `call-path-slice`
 
-**Document 结构**：
-- [ ] 顶级 section 仅 `## Overview` / `## <num>. <title>` / `## Narrative` / `## Notes`，**无 `## Nodes` / `## Edges` / `## Node Details` / `## Flow`**
-- [ ] Flow section 数 4–8（M 档；S 档 1–2 / L 档 5–12）
-- [ ] Section 编号从 1 顺次连续（1, 2, 3, ... 无跳号）
-- [ ] 每 section 标题格式 `## <数字>. <中文标题>`
-- [ ] 每 section 标题下一行有 `> 核心包 - <描述>` blockquote
+**Document structure**:
+- [ ] Top-level sections are ONLY `## Overview` / `## <num>. <title>` / `## Narrative` / `## Notes`; **no `## Nodes` / `## Edges` / `## Node Details` / `## Flow`**
+- [ ] Flow section count is 4–8 (M tier; S 1–2 / L 5–12)
+- [ ] Section numbers are continuous from 1 (1, 2, 3, ... — no gaps)
+- [ ] Each section title is `## <num>. <title>`
+- [ ] Each section has a `> 核心包 - <description>` blockquote on the next line
 
-**Overview**：
-- [ ] 含 ≥1 条 `[xa]→[xb]→[xc]` 主线引用链（≥3 个 ID 用 `→` 连接）
-- [ ] 总内联引用 `[<id>]` ≥5 个（可包含 `[§<num>]`）
-- [ ] 所有引用的 ID 都在 Flow section 里真实存在
-- [ ] 显式声明非目标 / out-of-scope
+**Overview**:
+- [ ] Contains ≥1 `[xa]→[xb]→[xc]` main flow reference chain (≥3 IDs joined by `→`)
+- [ ] Total inline `[<id>]` references ≥5 (may include `[§<num>]`)
+- [ ] All referenced IDs really exist in some Flow section
+- [ ] Explicit non-goals / out-of-scope statement
 
-**节点（每 section 内）**：
-- [ ] 至少 1 个代码节点（带 `**<id>**` + fenced code）
-- [ ] 代码节点 ID 前缀等于所在 section 编号（`1a` 在 `## 1.` 内）
-- [ ] 同 section 内 ID letter 不重复
-- [ ] 每代码节点必带 `**<id>** <label> — \`<file:line>\`` + fenced code（1–5 行）
-- [ ] 每指针节点必带 `**<label>** — \`<file:line>\``
-- [ ] 分组节点纯 `**<label>**`（可选 file:line）
-- [ ] 节点 label 用**中文动作描述**（动词开头，符号名不进 label）
-- [ ] 嵌套深度 ≤ 4 层
-- [ ] 二级 list 缩进 2 空格；fenced code 缩进 4 空格 × depth
+**Nodes (within each section)**:
+- [ ] At least 1 Code Node (with `**<id>**` + fenced code)
+- [ ] Code Node ID prefix matches the section number (`1a` lives in `## 1.`)
+- [ ] Letters within a section are unique
+- [ ] Each Code Node has `**<id>** <label> — \`<file:line>\`` + fenced code (1–5 lines)
+- [ ] Each Pointer Node has `**<label>** — \`<file:line>\``
+- [ ] Each Group Node is just `**<label>**` (optional file:line)
+- [ ] Node labels are **action descriptions in the user's input language** (verb-first; symbol names not in labels)
+- [ ] Nesting depth ≤ 4 levels
+- [ ] 2-level list indents 2 spaces; fenced code indents 4 spaces × depth
 
-**用户语言**：
-- [ ] Title / Overview / section 标题 / 节点 label / scope 用用户原始语言（中文项目用中文）
-- [ ] 文件路径 / 符号名 / 行号原文保留
+**User's language**:
+- [ ] Title / Overview / section titles / node labels / scope use the user's original language
+- [ ] File paths / symbol names / line numbers are kept verbatim
 
-**真实性**：
-- [ ] 每条 file:line 来自真实 Read（用 Read 工具读过对应文件）
-- [ ] 每段 fenced code 与源文件对应行**逐字一致**（除 `// ...` 省略外）
+**Authenticity**:
+- [ ] Every file:line came from a real Read (you used the Read tool)
+- [ ] Every fenced code excerpt matches the source file **verbatim** (modulo `// ...` elisions)
 
-**index.md**：
-- [ ] 已追加本 codemap 条目，其他条目保留
+**index.md**:
+- [ ] An entry for this codemap was added; existing entries preserved
 
-### 7. 反馈给用户
+### 7. Reporting Back to the User
 
-输出格式：
+Output format:
 
 ```
-✅ 已生成 codemap: <slug>
-  - 路径: .codemaps/<slug>.md (<代码节点数> code nodes 跨 <section 数> sections)
-  - 入口: <entry.ref>
-  - 引用字符串: @.codemaps/<slug>.md
+✅ Generated codemap: <slug>
+  - Path: .codemaps/<slug>.md (<num-code-nodes> code nodes across <num-sections> sections)
+  - Entry: <entry.ref>
+  - Reference string: @.codemaps/<slug>.md
 
-启动 viewer 可视化:
+To launch the viewer:
   cd <project-root> && codemap-viewer
   # → http://localhost:4676
 ```
 
-## 硬约束（不可违反）
+## Hard Constraints (non-negotiable)
 
-1. **禁止臆造 path:line**：所有 file:line 来自真实 Read，禁止根据函数名猜测行号
-2. **禁止改写代码**：fenced code block 必须是源文件真实连续行（允许 `// ...` 省略），禁止拼接 / 改写 / 生成式重构
-3. **代码节点 ≤ 5 行**：超长函数仅摘签名 + 关键调用行
-4. **节点 ID = section-local 复合编号** `<num><letter>`：禁止全局 `Nx` 形式
-5. **代码节点必带 fenced code**：1–5 行；指针节点必带 file:line（无 code）；分组节点仅 label（可选 file:line）
-6. **Overview 必含主线引用链 + 总内联引用 ≥5 + 显式非目标**
-7. **Flow section 4–8 个 + 编号 1 起顺次连续**：M 档；S 档 1–2 / L 档 5–12
-8. **每 section ≥ 1 代码节点 + 必带 `> 核心包 - ...` scope blockquote**
-9. **嵌套深度 ≤ 4 层**：超过提议拆 section
-10. **节点 label 用中文动作描述**：符号名仅在 code block，不写在 label
-11. **保留用户语言**：title / Overview / section 标题 / 节点 label 用用户输入时的语言；只有代码符号名 / file path / 行号保持原文
-13. **index.md 必须 read-first 整体覆盖写**：禁止流式 append
-14. **日期字段统一 `YYYY-MM-DD`**：不加引号、不写时分秒
+1. **Never fabricate path:line**: every file:line comes from a real Read; do not guess line numbers from function names
+2. **Never rewrite code**: fenced code blocks must be real consecutive lines from the source (`// ...` elisions allowed); no splicing / rewriting / generative refactoring
+3. **Code Node ≤ 5 lines**: for long functions, keep only the signature + key call sites
+4. **Node ID = section-local compound** `<num><letter>`: do not use a global `Nx` form
+5. **Code Node must have a fenced code block**: 1–5 lines; Pointer Node must have file:line (no code); Group Node has only a label (file:line optional)
+6. **Overview must contain a main flow reference chain + ≥5 inline references + an explicit non-goals statement**
+7. **4–8 Flow sections + numbered from 1, continuous**: M tier; S 1–2 / L 5–12
+8. **Each section ≥ 1 Code Node + a `> 核心包 - ...` scope blockquote**
+9. **Nesting depth ≤ 4**: split the section if you go deeper
+10. **Node labels are action descriptions in the user's input language**: symbol names live only in code blocks, not in labels
+11. **Preserve the user's language**: title / Overview / section titles / node labels are in the user's input language; only code symbol names / file paths / line numbers stay in their original form
+13. **`index.md` must Read-first then overwrite as a whole**: never streaming-append
+14. **Date fields use `YYYY-MM-DD`**: no quotes, no time component
 
-## 非目标
+## Non-Goals
 
-- **不做**全系统拓扑 / 架构俯瞰 / 重构用依赖全景图
-- **不修改**源代码
-- **不运行** git commit / push 等改变仓库状态的命令
-- **单次调用只产一个 codemap**；多任务分多次调用
+- **No** whole-system topology / architectural overview / refactor-oriented dependency map
+- **Do not** modify source code
+- **Do not** run git commit / push or any command that mutates repo state
+- **One codemap per invocation**; for multiple tasks, invoke multiple times
