@@ -7,7 +7,7 @@ English: [`README.md`](./README.md)
 
 ## Demo
 
-<video src="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4"
+<video src="https://github.com/user-attachments/assets/d102ff5e-347d-478a-9549-d619a16f7ef2"
        controls muted playsinline width="800"
        poster="https://raw.githubusercontent.com/tttinkl/codemaps-skill/main/image.png">
   当前阅读器不支持内嵌视频 —
