@@ -1,9 +1,15 @@
 # Codemap Skill
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./README.md)
+[![vsix](https://img.shields.io/github/v/release/tttinkl/codemaps-skill?label=vsix)](https://github.com/tttinkl/codemaps-skill/releases/latest)
+[![GitHub stars](https://img.shields.io/github/stars/tttinkl/codemaps-skill?style=flat&logo=github)](https://github.com/tttinkl/codemaps-skill)
+[![Discussions](https://img.shields.io/github/discussions/tttinkl/codemaps-skill?logo=github)](https://github.com/tttinkl/codemaps-skill/discussions)
+
 Task-driven generation of **Call-Path Slice codemaps** for coding projects — a single structured Markdown file written to `<project>/.codemaps/`. The output doubles as `@`-injection context for Claude and as a visual reading source for the local viewer.
 
 Skill definition: [`SKILL.md`](./SKILL.md)
 中文版: [`README.zh.md`](./README.zh.md)
+Questions / feedback: [GitHub Discussions](https://github.com/tttinkl/codemaps-skill/discussions)
 
 ## Demo
 

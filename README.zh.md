@@ -1,9 +1,15 @@
 # Codemap Skill
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./README.md)
+[![vsix](https://img.shields.io/github/v/release/tttinkl/codemaps-skill?label=vsix)](https://github.com/tttinkl/codemaps-skill/releases/latest)
+[![GitHub stars](https://img.shields.io/github/stars/tttinkl/codemaps-skill?style=flat&logo=github)](https://github.com/tttinkl/codemaps-skill)
+[![Discussions](https://img.shields.io/github/discussions/tttinkl/codemaps-skill?logo=github)](https://github.com/tttinkl/codemaps-skill/discussions)
+
 按任务驱动的方式为 coding project 生成 **Call-Path Slice codemap**——单一结构化 Markdown，写入 `<project>/.codemaps/`。产物同时供 Claude `@` 注入和本地 viewer 可视化阅读。
 
 技能定义：[`SKILL.zh.md`](./SKILL.zh.md)
 English: [`README.md`](./README.md)
+问题 / 反馈：[GitHub Discussions](https://github.com/tttinkl/codemaps-skill/discussions)
 
 ## Demo
 
