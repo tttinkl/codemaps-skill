@@ -5,6 +5,15 @@ Task-driven generation of **Call-Path Slice codemaps** for coding projects — a
 Skill definition: [`SKILL.md`](./SKILL.md)
 中文版: [`README.zh.md`](./README.zh.md)
 
+## Demo
+
+<video src="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4"
+       controls muted playsinline width="800"
+       poster="https://raw.githubusercontent.com/tttinkl/codemaps-skill/main/image.png">
+  Your viewer doesn't support inline video —
+  <a href="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4">download the .mp4</a>.
+</video>
+
 ## Install
 
 Install into your local AI agents (Claude Code / Cursor / Codex / Gemini CLI, …) in one shot via the [skills CLI](https://github.com/obra/skills):
@@ -47,9 +56,9 @@ The skill self-checks before activating:
 
 If either is missing, the skill asks back rather than guessing.
 
-## VS Code Extension Screenshot
+## Screenshot
 
-![alt text](image.png)
+![Codemap Viewer screenshot](image.png)
 
 ## License
 

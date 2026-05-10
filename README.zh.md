@@ -5,6 +5,15 @@
 技能定义：[`SKILL.zh.md`](./SKILL.zh.md)
 English: [`README.md`](./README.md)
 
+## Demo
+
+<video src="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4"
+       controls muted playsinline width="800"
+       poster="https://raw.githubusercontent.com/tttinkl/codemaps-skill/main/image.png">
+  当前阅读器不支持内嵌视频 —
+  <a href="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4">下载 .mp4</a>。
+</video>
+
 ## 安装
 
 通过 [skills CLI](https://github.com/obra/skills) 一键安装到本地各类 AI agent（Claude Code / Cursor / Codex / Gemini CLI 等）：
@@ -47,9 +56,9 @@ agent 会按 SKILL 的 6 阶段流程产出 `.codemaps/<slug>.md`。
 
 任一缺失会先反问，不会盲目开干。
 
-## VS Code Extension Screenshot
+## 截图
 
-![alt text](image.png)
+![Codemap Viewer 截图](image.png)
 
 ## License
 
