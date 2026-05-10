@@ -31,7 +31,7 @@ If either is missing: fill the gap before entering Step 1.
 1. **Interpret** — Map the user's entry description to code symbols / files / endpoints / events / extension points. **Preserve the user's original language** as `title` and section names; do not force translation. Expand vague terminology into code concepts; **never fabricate behavior you have not observed**.
 2. **Explore** — Starting from the entry, walk real callable paths (concrete follow paths in Step 2 below); chase **upstream data sources** as well as **downstream side effects**; prefer code paths that explain execution order and component relationships.
 3. **Evidence Graph** — Collect real nodes (all three kinds: Code / Pointer / Group) + file:line + code excerpt; every Code Node must carry a stable section-local id (`1a` / `2c` ...); strip low-value implementation details that do not support the main story.
-4. **Group** — Aggregate nodes into **4–8 sections** (M tier; S tier 1–2 / L tier 5–12), each describing a coherent flow or subsystem; order by execution / data / control flow; attach a one-liner **核心包 - <package/module scope description>** to each.
+4. **Group** — Aggregate nodes into **4–8 sections** (M tier; S tier 1–2 / L tier 5–12), each describing a coherent flow or subsystem; order by execution / data / control flow; attach a one-liner **Core packages - <package/module scope description>** to each.
 5. **Render** — Distill the title from the entry and the scope you discovered; **Overview must contain ≥1 main flow reference chain** (`[1a]→[1b]→[3c]`, ≥3 IDs joined with `→`) + ≥5 inline references in total + an explicit non-goals statement; write the nested markdown bullet tree per the §5.4 schema.
 6. **Validate** — Verify every path / line / code excerpt is real; remove unsupported claims; ask yourself one final question: "**Can I navigate the codebase with this map?**" — A document-only artifact does not pass.
 
@@ -151,7 +151,7 @@ history:
 
 ```markdown
 ## 1. RouteNav 组件渲染流程
-> 核心包 - RouteNav 主组件如何包装 Nav 子组件并传递路由数据
+> Core packages - RouteNav 主组件如何包装 Nav 子组件并传递路由数据
 
 - **RouteNav 主组件** — `RouteNav.tsx:8`
   - **1a** 获取路由数据 — `RouteNav.tsx:16`
@@ -205,7 +205,7 @@ The Overview is 3–5 sentences and **must** satisfy:
 #### 3.5 Section Title & Scope Blockquote
 
 - Title format: `## <num>. <Section Title>` (number + dot + space + title in the user's input language)
-- The line right after the title is a blockquote: `> 核心包 - <one-line package / module scope description>`
+- The line right after the title is a blockquote: `> Core packages - <one-line package / module scope description>`
 - Section ordering: by execution / data / control flow; a good default is "entry → main path → side effects → failure recovery"
 
 ### 4. Cross-Section Relationships
@@ -246,7 +246,7 @@ After generating, **self-verify** (every box ✅ before delivering to the user):
 - [ ] Flow section count is 4–8 (M tier; S 1–2 / L 5–12)
 - [ ] Section numbers are continuous from 1 (1, 2, 3, ... — no gaps)
 - [ ] Each section title is `## <num>. <title>`
-- [ ] Each section has a `> 核心包 - <description>` blockquote on the next line
+- [ ] Each section has a `> Core packages - <description>` blockquote on the next line
 
 **Overview**:
 - [ ] Contains ≥1 `[xa]→[xb]→[xc]` main flow reference chain (≥3 IDs joined by `→`)
@@ -300,7 +300,7 @@ To launch the viewer:
 5. **Code Node must have a fenced code block**: 1–5 lines; Pointer Node must have file:line (no code); Group Node has only a label (file:line optional)
 6. **Overview must contain a main flow reference chain + ≥5 inline references + an explicit non-goals statement**
 7. **4–8 Flow sections + numbered from 1, continuous**: M tier; S 1–2 / L 5–12
-8. **Each section ≥ 1 Code Node + a `> 核心包 - ...` scope blockquote**
+8. **Each section ≥ 1 Code Node + a `> Core packages - ...` scope blockquote**
 9. **Nesting depth ≤ 4**: split the section if you go deeper
 10. **Node labels are action descriptions in the user's input language**: symbol names live only in code blocks, not in labels
 11. **Preserve the user's language**: title / Overview / section titles / node labels are in the user's input language; only code symbol names / file paths / line numbers stay in their original form
