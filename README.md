@@ -10,8 +10,7 @@ Skill definition: [`SKILL.md`](./SKILL.md)
 <video src="https://github.com/user-attachments/assets/d102ff5e-347d-478a-9549-d619a16f7ef2"
        controls muted playsinline width="800"
        poster="https://raw.githubusercontent.com/tttinkl/codemaps-skill/main/image.png">
-  Your viewer doesn't support inline video —
-  <a href="https://github.com/tttinkl/codemaps-skill/releases/download/codemaps-vscode-0.1.0/demo.mp4">download the .mp4</a>.
+  Your viewer doesn't support inline video.
 </video>
 
 ## Install
