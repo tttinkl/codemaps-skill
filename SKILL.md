@@ -217,7 +217,50 @@ There is no separate Edges section. To express cross-section transitions:
 
 ### 5. Persistence
 
-**Atomic two-step write**:
+#### 5.0 Pre-write validation (mandatory — repair loop)
+
+The schema rules listed in §3 (frontmatter required fields, top-level section
+names, flow section continuity, code-node id letter uniqueness, Overview
+ref → code-node binding, …) are **mechanically enforced** by the parser
+shipped with the local viewer. Self-check (§6) is necessary but not
+sufficient — run the validator on the in-memory markdown FIRST, and only
+persist after it passes.
+
+**How to invoke** (pipe the assembled markdown via stdin so nothing hits
+disk on a failed attempt):
+
+```bash
+# `-` means read from stdin; npx pulls the published binary so this works
+# in any project that doesn't have it linked locally.
+printf '%s' "$GENERATED_MARKDOWN" | npx -y @tttinkl/codemaps-viewer validate -
+```
+
+If `codemap-viewer` is already on `$PATH` (globally linked), drop the `npx`
+prefix.
+
+**Interpreting the result**:
+
+- **Exit 0** → output `✓ valid: <stdin>`. Proceed to 5.1.
+- **Exit 1** → schema violation. Stderr contains a single diagnostic shaped
+  like:
+  ```
+  <stdin>:<line>:<col> - error: <message>
+
+  <line> | <offending source line>
+         | <caret pointing at column>
+
+  hint: <remediation suggestion>
+  ```
+  Read the message + hint, edit the in-memory markdown, then re-validate.
+- **Exit 2** → validator IO/usage problem (file unreadable, missing
+  argument). Surface to the user; do not retry blindly.
+
+**Repair loop budget: at most 3 attempts.** If the 3rd attempt still fails,
+**stop**: present the final diagnostic to the user verbatim and ask for
+guidance. **Never write a file that fails parsing** — bad codemaps poison
+the viewer, the VS Code extension, and downstream `@`-references.
+
+#### 5.1 Atomic two-step write (only after 5.0 passes)
 
 1. Write `<project>/.codemaps/<slug>.md` (frontmatter + Overview + N flow sections + Narrative + Notes)
 2. Update `<project>/.codemaps/index.md` — **must Read-first → assemble in memory → overwrite the whole file**; never streaming-append (to avoid corruption on interrupt; index entries include slug / scope / title / tags / last_touched)
@@ -234,6 +277,12 @@ There is no separate Edges section. To express cross-section transitions:
 **Do not auto-write `.gitignore`**: `.codemaps/` is tracked by default — it is the team's shared task-context archive.
 
 ### 6. Self-Check Checklist
+
+The structural rules in this list (frontmatter shape, section names &
+continuity, id letter uniqueness, Overview ref binding, …) are already
+**mechanically verified** in §5.0. The remaining items below — language
+preservation, code authenticity, label style, etc. — are what the parser
+**cannot** check; they are your responsibility.
 
 After generating, **self-verify** (every box ✅ before delivering to the user):
 
@@ -306,6 +355,7 @@ To launch the viewer:
 11. **Preserve the user's language**: title / Overview / section titles / node labels are in the user's input language; only code symbol names / file paths / line numbers stay in their original form
 13. **`index.md` must Read-first then overwrite as a whole**: never streaming-append
 14. **Date fields use `YYYY-MM-DD`**: no quotes, no time component
+15. **Pre-write parser validation is mandatory**: run `codemap-viewer validate -` on the in-memory markdown before disk write; on failure, repair (≤3 attempts) and re-validate; never persist a file that fails parsing
 
 ## Non-Goals
 

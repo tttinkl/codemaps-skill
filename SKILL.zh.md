@@ -217,7 +217,43 @@ Overview 段落 3–5 句话；**必须**满足：
 
 ### 5. 写盘
 
-**两步原子操作**：
+#### 5.0 写前 parser 校验（必做，含修复回路）
+
+§3 列出的所有结构性规则（frontmatter 必填字段、顶级 section 名、flow section
+连续编号、代码节点 id letter 唯一、Overview 引用必须指向真实代码节点 ……）
+都由本仓 viewer 自带的 parser **机器校验**。§6 自检是必要补充但不充分——
+**先**用校验器跑一遍内存里的 markdown，**通过后**才能落盘。
+
+**调用方式**（用 stdin 推入，失败时不会留下脏文件）：
+
+```bash
+# `-` 表示从 stdin 读；npx 拉取已发布的 binary，使本流程在任意未本地链接的项目都能跑
+printf '%s' "$GENERATED_MARKDOWN" | npx -y @tttinkl/codemaps-viewer validate -
+```
+
+若 `codemap-viewer` 已全局 link，可省略 `npx` 前缀。
+
+**结果解读**：
+
+- **退出码 0** → 输出 `✓ valid: <stdin>`，进入 5.1。
+- **退出码 1** → schema 不合法。stderr 输出单条诊断，格式如下：
+  ```
+  <stdin>:<line>:<col> - error: <message>
+
+  <line> | <出错那一行的源文本>
+         | <指向 column 的 ^ 标记>
+
+  hint: <修复建议>
+  ```
+  按 message + hint 修订内存里的 markdown，再次校验。
+- **退出码 2** → 校验器自身 IO/用法问题（文件不可读、参数缺失等），上报用户，
+  **不要**盲目重试。
+
+**修复回路上限：3 次**。第 3 次仍失败则**停止**：把最后一条诊断原文展示给用户，
+请求人工指引。**禁止落盘任何 parser 校验失败的文件** —— 坏 codemap 会污染
+viewer、VS Code 扩展，以及下游的 `@`-引用。
+
+#### 5.1 两步原子写盘（仅在 5.0 通过后）
 
 1. 写 `<project>/.codemaps/<slug>.md`（frontmatter + Overview + N flow sections + Narrative + Notes）
 2. 更新 `<project>/.codemaps/index.md` —— **必须 Read-first → 内存拼接 → 整体覆盖写**，禁止流式 append（防中断损坏；index 条目含 slug / scope / title / tags / last_touched）
@@ -234,6 +270,11 @@ Overview 段落 3–5 句话；**必须**满足：
 **不自动写 `.gitignore`**：`.codemaps/` 默认跟踪，作为团队共享的任务上下文档案。
 
 ### 6. 自检清单
+
+下面清单中所有**结构性**条目（frontmatter 形态、section 命名与连续编号、ID
+letter 唯一、Overview 引用绑定 ……）已在 §5.0 由 parser **机器校验**。剩余条目
+——用户语言保留、代码真实性、label 风格等——是 parser **无法**机械检查的部分，
+由你负责。
 
 生成完毕**自行**核对（全部 ✅ 才向用户交付）：
 
@@ -306,6 +347,7 @@ Overview 段落 3–5 句话；**必须**满足：
 11. **保留用户语言**：title / Overview / section 标题 / 节点 label 用用户输入时的语言；只有代码符号名 / file path / 行号保持原文
 13. **index.md 必须 read-first 整体覆盖写**：禁止流式 append
 14. **日期字段统一 `YYYY-MM-DD`**：不加引号、不写时分秒
+15. **写盘前必须通过 parser 校验**：用 `codemap-viewer validate -` 校验内存中的 markdown；失败时按 hint 修订（≤3 次）后重新校验；任何未通过校验的文件**禁止**落盘
 
 ## 非目标
 
