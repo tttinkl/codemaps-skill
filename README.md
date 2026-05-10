@@ -1,50 +1,51 @@
 # Codemap Skill
 
-按任务驱动的方式为 coding project 生成 **Call-Path Slice codemap**——单一结构化 Markdown，写入 `<project>/.codemaps/`。产物同时供 Claude `@` 注入和本地 viewer 可视化阅读。
+Task-driven generation of **Call-Path Slice codemaps** for coding projects — a single structured Markdown file written to `<project>/.codemaps/`. The output doubles as `@`-injection context for Claude and as a visual reading source for the local viewer.
 
-技能定义：[`SKILL.md`](./SKILL.md)
+Skill definition: [`SKILL.md`](./SKILL.md)
+中文版: [`README.zh.md`](./README.zh.md)
 
-## 安装
+## Install
 
-通过 [skills CLI](https://github.com/obra/skills) 一键安装到本地各类 AI agent（Claude Code / Cursor / Codex / Gemini CLI 等）：
+Install into your local AI agents (Claude Code / Cursor / Codex / Gemini CLI, …) in one shot via the [skills CLI](https://github.com/obra/skills):
 
 ```bash
 pnpm dlx skills add tttinkl/codemaps-skill
 ```
 
-按提示选择目标 agent 即可。
+Pick the target agent when prompted.
 
-## 使用
+## Usage
 
-激活后，向 AI agent 说：
+Once activated, prompt your AI agent with things like:
 
-- "建 codemap" / "/codemap 给 X 流程做一张代码地图" / "帮我理解这条调用链"
+- "build a codemap" / "/codemap make a code map for the X flow" / "help me understand this call chain"
 
-agent 会按 SKILL 的 6 阶段流程产出 `.codemaps/<slug>.md`。
+The agent runs the 6-phase workflow from `SKILL.md` and produces `.codemaps/<slug>.md`.
 
-## 配套 VS Code 插件
+## Companion VS Code Extension
 
-`.codemaps/**/*.md` 可以用 **Codemap Viewer** 插件渲染成交互式调用图（VS Code / Windsurf / Cursor 通用）。
+`.codemaps/**/*.md` files can be rendered as an interactive call graph by the **Codemap Viewer** extension (works in VS Code / Windsurf / Cursor).
 
-**下载安装**：
+**Download & install**:
 
-1. 前往 [GitHub Releases](https://github.com/tttinkl/codemaps-skill/releases) 下载最新 `.vsix`
-2. 用 `.vsix` 的实际路径安装（cd 到下载目录，或写绝对路径）：
+1. Grab the latest `.vsix` from [GitHub Releases](https://github.com/tttinkl/codemaps-skill/releases)
+2. Install with the actual path to the `.vsix` (cd to the download directory, or use an absolute path):
 
    ```bash
    code --install-extension ~/Downloads/codemaps-vscode-<version>.vsix
    ```
 
-   Windsurf / Cursor 用对应的 `windsurf` / `cursor` 命令。
+   For Windsurf / Cursor, use the corresponding `windsurf` / `cursor` CLI.
 
-## 基本检查
+## Preconditions
 
-激活前提（SKILL 自检）：
+The skill self-checks before activating:
 
-- [x] 工作目录是 coding project（有源代码，不是文档仓库）
-- [x] 已给出任务 / 入口描述（如"登录流程"、"`/api/orders` POST handler"）
+- [x] The working directory is a coding project (real source, not a docs repo)
+- [x] You have stated a task / entry point (e.g. "the login flow", "`/api/orders` POST handler")
 
-任一缺失会先反问，不会盲目开干。
+If either is missing, the skill asks back rather than guessing.
 
 ## VS Code Extension Screenshot
 
