@@ -31,7 +31,7 @@ If either is missing: fill the gap before entering Step 1.
 1. **Interpret** — Map the user's entry description to code symbols / files / endpoints / events / extension points. **Preserve the user's original language** as `title` and section names; do not force translation. Expand vague terminology into code concepts; **never fabricate behavior you have not observed**.
 2. **Explore** — Starting from the entry, walk real callable paths (concrete follow paths in Step 2 below); chase **upstream data sources** as well as **downstream side effects**; prefer code paths that explain execution order and component relationships.
 3. **Evidence Graph** — Collect real nodes (all three kinds: Code / Pointer / Group) + file:line + code excerpt; every Code Node must carry a stable section-local id (`1a` / `2c` ...); strip low-value implementation details that do not support the main story.
-4. **Group** — Aggregate nodes into **4–8 sections** (M tier; S tier 1–2 / L tier 5–12), each describing a coherent flow or subsystem; order by execution / data / control flow; attach a one-liner **Core packages - <package/module scope description>** to each.
+4. **Group** — Aggregate nodes into **4–8 sections**, each describing a coherent flow or subsystem; order by execution / data / control flow; attach a one-liner **Core packages - <package/module scope description>** to each.
 5. **Render** — Distill the title from the entry and the scope you discovered; **Overview must contain ≥1 main flow reference chain** (`[1a]→[1b]→[3c]`, ≥3 IDs joined with `→`) + ≥5 inline references in total + an explicit non-goals statement; write the nested markdown bullet tree per the §5.4 schema.
 6. **Validate** — Verify every path / line / code excerpt is real; remove unsupported claims; ask yourself one final question: "**Can I navigate the codebase with this map?**" — A document-only artifact does not pass.
 
@@ -40,7 +40,6 @@ If either is missing: fill the gap before entering Step 1.
 ### 1. Align Task Boundaries (interactive with the user)
 
 - **Restate the task goal in one sentence**
-- **Confirm the scope tier** (default M for MVP; user may pick S for deep-read of a single function, or L for an extension-point contract)
 - **Confirm the entry anchor**: type (`function` / `endpoint` / `event` / `extension-point`) + ref (symbol / HTTP path / event name)
 - **Propose a slug**: derive a kebab-case slug from the title, e.g. `user-login-flow` / `webhook-processor-extension`; if `.codemaps/<slug>.md` already exists, append `-2` / `-3`; final slug ≤ 50 chars
 - **Declare boundaries**: state explicitly what this codemap **will not** cover (to prevent exploration creep)
@@ -62,6 +61,16 @@ If either is missing: fill the gap before entering Step 1.
   - **Downstream side effects** — DB writes / network egress / logging / queue enqueues / file IO
 - **Priority order**:
   entry > branch turning point > failure handling > cross-layer hop (sync↔async / inter-process / network IO) > upstream data source > downstream side effect > trivial pass-through
+
+**Stopping criteria** (when to stop exploring — replaces the v0.1.3 size-tier rules):
+- The end-to-end main path reaches its terminal failure handling / output side effect
+- Every branch at the entry has been covered by at least one path in the map
+- Exploring further would only add trivial pass-through nodes (helpers, wrappers, formatters that do not change the story)
+
+**Size guidance** (advisory, not parser-enforced):
+- Most codemaps land at 8–40 code nodes; aim for the smallest map that still covers the user's task end-to-end
+- At ~50 code nodes, pause and re-examine the task boundary — if the "task" is actually a composite of subtasks, ask the user to split it into smaller tasks and invoke the skill once per subtask (the "one task, one codemap" principle holds — do not split a single codemap into multiple files)
+- At ~80 code nodes, the task scope is likely too broad — re-scope with the user before continuing
 
 **Anti-fabrication hard rules (non-negotiable)**:
 - Every file:line must come from a **real file read** (Read tool); never invent symbol names or line numbers from training-set memory
@@ -114,7 +123,6 @@ If either is missing: fill the gap before entering Step 1.
 | Field | Required | Type / Values | Description |
 |---|---|---|---|
 | `slug` | ✅ | kebab-case string, ≤50 chars | Filename = `<slug>.md`; bound to `.codemaps/<slug>.md`; on conflict append `-2` / `-3` |
-| `scope` | ✅ | `S` / `M` / `L` enum (single letter) | Size tier: S=3–15 Code Nodes / M=15–60 (default) / L=30–150; viewer adjusts render density |
 | `kind` | ✅ | fixed value `call-path-slice` | Document-type discriminator; currently the only valid value (parser rejects others) |
 | `title` | ✅ | string in user's original language | One-line task description; if it contains `:` / `#` / `[]`, single-quote it (see §5 quoting rules) |
 | `entry.type` | ✅ | `function` / `endpoint` / `event` / `extension-point` enum | Entry anchor type |
@@ -130,7 +138,6 @@ If either is missing: fill the gap before entering Step 1.
 ```yaml
 ---
 slug: routenav-navigation-structure
-scope: M
 kind: call-path-slice
 title: RouteNav 导航组件结构：路由处理与二级菜单系统
 entry:
@@ -287,12 +294,12 @@ preservation, code authenticity, label style, etc. — are what the parser
 After generating, **self-verify** (every box ✅ before delivering to the user):
 
 **Frontmatter**:
-- [ ] All required fields present: slug / scope / kind / title / entry / created_at (last_touched / tags / history optional)
+- [ ] All required fields present: slug / kind / title / entry / created_at (scope / last_touched / tags / history optional)
 - [ ] `kind` value is `call-path-slice`
 
 **Document structure**:
 - [ ] Top-level sections are ONLY `## Overview` / `## <num>. <title>` / `## Narrative` / `## Notes`; **no `## Nodes` / `## Edges` / `## Node Details` / `## Flow`**
-- [ ] Flow section count is 4–8 (M tier; S 1–2 / L 5–12)
+- [ ] Flow section count is 4–8
 - [ ] Section numbers are continuous from 1 (1, 2, 3, ... — no gaps)
 - [ ] Each section title is `## <num>. <title>`
 - [ ] Each section has a `> Core packages - <description>` blockquote on the next line
@@ -315,7 +322,7 @@ After generating, **self-verify** (every box ✅ before delivering to the user):
 - [ ] 2-level list indents 2 spaces; fenced code indents 4 spaces × depth
 
 **User's language**:
-- [ ] Title / Overview / section titles / node labels / scope use the user's original language
+- [ ] Title / Overview / section titles / node labels use the user's original language
 - [ ] File paths / symbol names / line numbers are kept verbatim
 
 **Authenticity**:
@@ -348,7 +355,7 @@ To launch the viewer:
 4. **Node ID = section-local compound** `<num><letter>`: do not use a global `Nx` form
 5. **Code Node must have a fenced code block**: 1–5 lines; Pointer Node must have file:line (no code); Group Node has only a label (file:line optional)
 6. **Overview must contain a main flow reference chain + ≥5 inline references + an explicit non-goals statement**
-7. **4–8 Flow sections + numbered from 1, continuous**: M tier; S 1–2 / L 5–12
+7. **4–8 Flow sections + numbered from 1, continuous**
 8. **Each section ≥ 1 Code Node + a `> Core packages - ...` scope blockquote**
 9. **Nesting depth ≤ 4**: split the section if you go deeper
 10. **Node labels are action descriptions in the user's input language**: symbol names live only in code blocks, not in labels
