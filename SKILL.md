@@ -345,6 +345,9 @@ Output format:
 To launch the viewer:
   cd <project-root> && codemap-viewer
   # → http://localhost:4676
+
+Install codemap-viewer globally:
+  pnpm add -g @tttinkl/codemaps-viewer
 ```
 
 ## Hard Constraints (non-negotiable)
