@@ -272,6 +272,45 @@ the viewer, the VS Code extension, and downstream `@`-references.
 1. Write `<project>/.codemaps/<slug>.md` (frontmatter + Overview + N flow sections + Narrative + Notes)
 2. Update `<project>/.codemaps/index.md` — **must Read-first → assemble in memory → overwrite the whole file**; never streaming-append (to avoid corruption on interrupt; index entries include slug / scope / title / tags / last_touched)
 
+#### 5.2 Backfill freshness sha (mandatory — v0.2)
+
+After 5.1 succeeds, immediately run the backfill CLI to populate the v0.2
+freshness fields (`files:` map + `last_verified:`) on the just-written
+codemap:
+
+```bash
+# `<slug>` is the same slug used in the filename (no `.md` suffix).
+# `--project <projectRoot>` defaults to cwd; pass it explicitly when
+# the codemap was written under a non-cwd project root.
+npx -y @tttinkl/codemaps-viewer backfill <slug>
+```
+
+If `codemap-viewer` is already on `$PATH` (globally linked), drop the `npx`
+prefix.
+
+**Hard rule — do NOT write `files:` or `last_verified:` yourself.** sha
+generation is the CLI's job:
+- It reads each `pathRef.relPath` from the codemap
+- Reads the source file contents
+- Computes a deterministic 16-hex sha256 over normalized content
+- Writes them back into the codemap's frontmatter
+
+Hand-written shas will be wrong (different normalize / hash) and cause every
+freshness check to false-positive "stale". Always delegate to the CLI.
+
+**Interpreting the result**:
+- `✓ <slug>  — N file(s), wrote sha for K, M missing` → done. The codemap
+  is now v0.2-ready and the viewer / VS Code extension will show ✓ Fresh.
+- `✗ <slug>  — parse error: <message>` → the codemap you just wrote does
+  not parse. This should not happen because §5.0 already validated it; if
+  it does, surface the message verbatim and ask the user to investigate.
+- `M missing > 0` → some `relPath`s in your codemap point at files that
+  don't exist on disk. Fix the relPaths (typo / wrong project root) and
+  re-run, or proceed and let the freshness UI flag those files as missing.
+
+**Exit codes**: 0 OK, 1 some failures, 2 IO/usage error (treat as a stop
+condition).
+
 **Frontmatter date field rules**:
 - **Always plain `YYYY-MM-DD`; no quotes, no time component**
 - Applies to: `created_at` / `last_touched` / `history.introduced_at` / `history.last_refactor`
@@ -332,6 +371,11 @@ After generating, **self-verify** (every box ✅ before delivering to the user):
 **index.md**:
 - [ ] An entry for this codemap was added; existing entries preserved
 
+**Freshness backfill (v0.2)**:
+- [ ] `codemap-viewer backfill <slug>` was run AFTER §5.1 wrote the file
+- [ ] CLI reported `✓ <slug>  — N file(s), wrote sha for K`
+- [ ] No hand-written `files:` / `last_verified:` in the frontmatter
+
 ### 7. Reporting Back to the User
 
 Output format:
@@ -366,6 +410,7 @@ Install codemap-viewer globally:
 13. **`index.md` must Read-first then overwrite as a whole**: never streaming-append
 14. **Date fields use `YYYY-MM-DD`**: no quotes, no time component
 15. **Pre-write parser validation is mandatory**: run `codemap-viewer validate -` on the in-memory markdown before disk write; on failure, repair (≤3 attempts) and re-validate; never persist a file that fails parsing
+16. **Post-write backfill is mandatory (v0.2)**: after writing the codemap to disk, run `codemap-viewer backfill <slug>` to populate `files:` sha map + `last_verified:` in the frontmatter — **never hand-write `files:` or `last_verified:` yourself** (sha generation is the CLI's job; manual values will all be wrong and trip every freshness check)
 
 ## Non-Goals
 
