@@ -76,6 +76,14 @@ If either is missing: fill the gap before entering Step 1.
 - Every file:line must come from a **real file read** (Read tool); never invent symbol names or line numbers from training-set memory
 - Every Code Node's code must be **real consecutive lines** from the source file; `// ...` may be used to skip irrelevant inner branches; **never rewrite / splice / synthesize code**
 
+**Secret-safety hard rules (non-negotiable — the codemap is git-tracked, a leaked secret enters history)**:
+
+The verbatim-excerpt mandate above would, unguarded, copy any API key / token / password / private key sitting in source or config straight into `.codemaps/<slug>.md`. Two defenses, applied at selection and excerpt time (a third, mechanical backstop runs in §5.0):
+
+- **Avoid (selection time)** — Secret-bearing files (`.env` / `.env.*`, `*.pem` / `*.key` / `*.p12`, `secrets.*`, `credentials*`, `*.tfvars`, anything matching a gitignored-secret pattern) are represented as **Pointer Nodes** (`**<label>** — \`file:line\``, no fenced code). Point at *where* config is loaded; never quote the secret value itself.
+- **Redact (excerpt time)** — If a chosen excerpt still contains a credential literal, replace **the secret value inside its string literal** with the typed placeholder `‹REDACTED:<kind>›` (e.g. `const KEY = "‹REDACTED:api-key›";`). This is the **single allowed exception** to "never rewrite code" — it is honest masking in the same category as `// ...` elision: the line shape stays real, only the secret token is hidden. Do **not** delete the line, replace it with a comment, or paraphrase the surrounding code.
+- **Patterns to treat as secrets**: provider-prefixed tokens (`AKIA…` / `ASIA…` / `AROA…` / `ghp_…` / `github_pat_…` / `xox[baprs]-…` / `sk-…` / `sk_live_…` / `AIza…`), `-----BEGIN … PRIVATE KEY-----` blocks, JWTs (`eyJ….eyJ….…`), connection strings with inline credentials (`scheme://user:pass@host`), and quoted hardcoded assignments to `password` / `secret` / `api_key` / `access_token` / `client_secret` / `private_key`.
+
 ### 3. Construct the Document
 
 > The examples in this section use Chinese labels because the canonical example project's input language was Chinese. In an English-input project, the labels would be in English. Examples are about structure and indentation, not language.
@@ -248,8 +256,15 @@ prefix.
 **Interpreting the result**:
 
 - **Exit 0** → output `✓ valid: <stdin>`. Proceed to 5.1.
-- **Exit 1** → schema violation. Stderr contains a single diagnostic shaped
-  like:
+- **Exit 1** → **schema violation OR an embedded credential** (validate runs
+  the secret scan on every schema-clean document). A secret diagnostic looks
+  like `<stdin>:<line>:<col> - error: possible <kind> credential embedded in
+  codemap content (…)` and stderr **may contain multiple blocks** — one per
+  finding. Fix **all** of them in one pass: apply the §2 redact rule
+  (`‹REDACTED:<kind>›` inside the string literal) to every flagged line, then
+  re-validate. This shares the 3-attempt repair budget below, so do not
+  redact one-at-a-time. A schema violation instead carries a single
+  diagnostic shaped like:
   ```
   <stdin>:<line>:<col> - error: <message>
 
@@ -366,7 +381,11 @@ After generating, **self-verify** (every box ✅ before delivering to the user):
 
 **Authenticity**:
 - [ ] Every file:line came from a real Read (you used the Read tool)
-- [ ] Every fenced code excerpt matches the source file **verbatim** (modulo `// ...` elisions)
+- [ ] Every fenced code excerpt matches the source file **verbatim** (modulo `// ...` elisions and `‹REDACTED:<kind>›` secret masking)
+
+**Secret safety**:
+- [ ] No raw API key / token / password / private key in any fenced code or frontmatter; secret-bearing files are Pointer Nodes; any unavoidable literal is masked as `‹REDACTED:<kind>›` inside its string literal
+- [ ] §5.0 validate exited 0 (it also fails exit 1 on detected credentials)
 
 **index.md**:
 - [ ] An entry for this codemap was added; existing entries preserved
@@ -397,7 +416,7 @@ Install codemap-viewer globally:
 ## Hard Constraints (non-negotiable)
 
 1. **Never fabricate path:line**: every file:line comes from a real Read; do not guess line numbers from function names
-2. **Never rewrite code**: fenced code blocks must be real consecutive lines from the source (`// ...` elisions allowed); no splicing / rewriting / generative refactoring
+2. **Never rewrite code**: fenced code blocks must be real consecutive lines from the source (`// ...` elisions allowed); no splicing / rewriting / generative refactoring — the **sole exception** is masking a secret value as `‹REDACTED:<kind>›` inside its string literal (see Secret-safety hard rules in §2)
 3. **Code Node ≤ 5 lines**: for long functions, keep only the signature + key call sites
 4. **Node ID = section-local compound** `<num><letter>`: do not use a global `Nx` form
 5. **Code Node must have a fenced code block**: 1–5 lines; Pointer Node must have file:line (no code); Group Node has only a label (file:line optional)
@@ -411,6 +430,7 @@ Install codemap-viewer globally:
 14. **Date fields use `YYYY-MM-DD`**: no quotes, no time component
 15. **Pre-write parser validation is mandatory**: run `codemap-viewer validate -` on the in-memory markdown before disk write; on failure, repair (≤3 attempts) and re-validate; never persist a file that fails parsing
 16. **Post-write backfill is mandatory (v0.2)**: after writing the codemap to disk, run `codemap-viewer backfill <slug>` to populate `files:` sha map + `last_verified:` in the frontmatter — **never hand-write `files:` or `last_verified:` yourself** (sha generation is the CLI's job; manual values will all be wrong and trip every freshness check)
+17. **Never emit a raw secret**: secret-bearing files are Pointer Nodes (no code excerpt); any unavoidable credential literal is masked as `‹REDACTED:<kind>›` inside its string literal (the sole allowed code rewrite). `validate` mechanically rejects (exit 1) any embedded credential — a leak here enters git history (see Secret-safety hard rules in §2)
 
 ## Non-Goals
 
